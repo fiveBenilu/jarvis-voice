@@ -28,9 +28,16 @@ def _build_cmd() -> list[str]:
         "--create-if-missing",
     ]
     # Modell pro Aufruf umstellbar (verifiziert: `hermes chat` kennt -m/--model).
-    model = settings.current().get("hermes_model") or ""
+    s = settings.current()
+    model = s.get("hermes_model") or ""
     if model:
         cmd += ["--model", model]
+    # Tools abschaltbar: `-t safe` ist ein Toolset mit 0 Tools (verifiziert -
+    # der Agent hat dann kein Terminal/Datei-Tool und antwortet ohne
+    # Tool-Schleifen deutlich schneller). Ein leeres `-t ""` bewirkt NICHTS,
+    # weil die CLI leere Werte als "Defaults verwenden" interpretiert.
+    if s.get("hermes_tools") == "off":
+        cmd += ["--toolsets", "safe"]
     cmd += [
         "-Q",  # nur die finale Antwort auf stdout, kein Banner/Spinner
         "--query-file",

@@ -324,3 +324,34 @@ API:
 - `GET /api/settings` → `{settings, options}` (inkl. Stimmen- und Modelllisten)
 - `PUT /api/settings` → Teil-Update; unbekannte Provider → HTTP 422
 - `GET /api/health` zeigt jetzt auch `tts_provider`, `tts_voice`, `hermes_model`
+
+### Modell- und Tools-Auswahl (Einstellungen)
+
+Im Settings-Sheet zusätzlich wählbar:
+
+| Feld | Werte |
+|------|-------|
+| **Hermes model** | Standard (config.yaml), **Claude Sonnet 5**, **Claude Haiku 4.5**, Sonnet 4.6, Opus 4.6, DeepSeek V4.1 Flash |
+| **Tools** | `On (full capabilities)` ⇄ `Off (faster answers)` |
+
+Modell-IDs gegen die OpenRouter-Modellliste geprüft:
+`anthropic/claude-sonnet-5` (1M Kontext), `anthropic/claude-haiku-4.5` (200k).
+
+**Wie „Tools off" funktioniert:** `hermes chat` hat kein „Tools aus"-Flag. Ein
+leeres `-t ""` bewirkt nichts — die CLI behandelt leere Werte als „Default-
+Toolsets verwenden" (siehe `hermes_cli/oneshot.py::_normalize_toolsets`, das
+für falsy `None` zurückgibt). Es gibt aber das Toolset **`safe`** mit **0 Tools**;
+`--toolsets safe` schaltet damit Terminal/Datei/etc. wirklich ab. Verifiziert:
+der Agent antwortet dann „The terminal tool is not available in this session".
+
+**Gemessener Nutzen** (Haiku 4.5, triviale Frage, je 3 Läufe, identische Frage):
+
+| Modus | Durchschnitt pro Turn |
+|-------|----------------------|
+| Tools an | 7,35 s |
+| Tools aus | 6,55 s |
+
+Also nur ~0,8 s bei trivialen Fragen, weil Hermes' Prozess-Startzeit (~6 s) und
+der Modell-Roundtrip dominieren. Der eigentliche Gewinn ist ein anderer: mit
+Tools an kann ein Turn in mehrstufige Tool-Schleifen laufen (30–60 s+), mit
+Tools aus ist die Antwortzeit kurz und vorhersagbar.

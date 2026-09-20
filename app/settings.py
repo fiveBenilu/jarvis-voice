@@ -27,12 +27,25 @@ OPENROUTER_VOICES = [
 ]
 
 # Hermes-Modelle, die wir anbieten. "-m/--model" wird pro Aufruf durchgereicht.
+# IDs gegen die OpenRouter-Modellliste verifiziert (anthropic/claude-sonnet-5,
+# anthropic/claude-haiku-4.5).
 HERMES_MODELS = [
     {"id": "", "label": "Standard (config.yaml)"},
+    {"id": "anthropic/claude-sonnet-5", "label": "Claude Sonnet 5"},
+    {"id": "anthropic/claude-haiku-4.5", "label": "Claude Haiku 4.5 (schnell)"},
     {"id": "anthropic/claude-sonnet-4-6", "label": "Claude Sonnet 4.6"},
     {"id": "anthropic/claude-opus-4-6", "label": "Claude Opus 4.6"},
     {"id": "deepseek/deepseek-v4.1-flash", "label": "DeepSeek V4.1 Flash (schnell)"},
 ]
+
+# Tools an/aus. "off" reicht `-t safe` an `hermes chat` durch: das ist ein
+# Toolset mit 0 Tools (verifiziert - der Agent hat dann kein Terminal/Datei/etc.
+# und antwortet dadurch schnell und ohne Tool-Schleifen).
+TOOL_MODES = [
+    {"id": "on", "label": "On (full capabilities)"},
+    {"id": "off", "label": "Off (faster answers)"},
+]
+TOOL_MODES_IDS = tuple(m["id"] for m in TOOL_MODES)
 
 
 def defaults() -> dict:
@@ -43,6 +56,7 @@ def defaults() -> dict:
         "openrouter_model": config.TTS_MODEL,
         "openrouter_voice": config.TTS_VOICE,
         "hermes_model": "",
+        "hermes_tools": "on",
     }
 
 
@@ -82,6 +96,8 @@ def save(patch: dict) -> dict:
         value = value.strip()
         if key == "tts_provider" and value not in PROVIDERS:
             raise ValueError(f"Unbekannter TTS-Provider: {value!r} (erlaubt: {', '.join(PROVIDERS)})")
+        if key == "hermes_tools" and value not in TOOL_MODES_IDS:
+            raise ValueError(f"Unbekannter Tools-Modus: {value!r} (erlaubt: {', '.join(TOOL_MODES_IDS)})")
         data[key] = value
 
     with _lock:

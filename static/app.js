@@ -253,6 +253,7 @@ const settingsStatus = document.getElementById("settings-status");
 const selProvider = document.getElementById("set-provider");
 const selVoice = document.getElementById("set-voice");
 const selModel = document.getElementById("set-model");
+const selTools = document.getElementById("set-tools");
 
 let settingsOptions = null;
 
@@ -303,6 +304,7 @@ async function openSettings() {
       fillSelect(selVoice, settingsOptions.openrouter_voices, s.openrouter_voice);
     }
     fillSelect(selModel, settingsOptions.hermes_models, s.hermes_model || "");
+    fillSelect(selTools, settingsOptions.tool_modes, s.hermes_tools || "on");
     settingsStatus.textContent = "";
   } catch (e) {
     settingsStatus.className = "hint error";
@@ -323,7 +325,7 @@ selProvider.addEventListener("change", () => refreshVoiceSelect(selProvider.valu
 settingsForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const provider = selProvider.value;
-  const body = { tts_provider: provider, hermes_model: selModel.value };
+  const body = { tts_provider: provider, hermes_model: selModel.value, hermes_tools: selTools.value };
   if (provider === "kokoro") body.kokoro_voice = selVoice.value;
   else body.openrouter_voice = selVoice.value;
 

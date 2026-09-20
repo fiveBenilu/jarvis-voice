@@ -103,6 +103,7 @@ class SettingsIn(BaseModel):
     openrouter_model: str | None = None
     openrouter_voice: str | None = None
     hermes_model: str | None = None
+    hermes_tools: str | None = None
 
 
 @app.get("/api/settings")
@@ -118,6 +119,7 @@ async def get_settings():
             "kokoro_voices": await tts.available_kokoro_voices(),
             "openrouter_voices": settings.OPENROUTER_VOICES,
             "hermes_models": settings.HERMES_MODELS,
+            "tool_modes": settings.TOOL_MODES,
         },
     }
 
