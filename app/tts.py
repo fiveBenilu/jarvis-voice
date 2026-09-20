@@ -1,4 +1,4 @@
-"""Text-to-Speech über OpenRouter (Fish Audio) + Filler-Cache."""
+"""Text-to-Speech über OpenRouter (Fish Audio) + Kokoro (lokal) + Filler-Cache."""
 import asyncio
 import logging
 
@@ -14,12 +14,21 @@ class TTSError(RuntimeError):
 
 
 async def synthesize(text: str) -> bytes:
-    """Text -> MP3-Bytes. Die API liefert rohe Audiobytes, kein JSON."""
-    if not config.OPENROUTER_API_KEY:
-        raise TTSError("OPENROUTER_API_KEY ist nicht gesetzt (siehe README).")
+    """Text -> MP3-Bytes. Wählt Provider basierend auf TTS_PROVIDER."""
     text = text.strip()
     if not text:
         raise TTSError("Leerer Text.")
+
+    if config.TTS_PROVIDER == "kokoro":
+        return await _synthesize_kokoro(text)
+    else:
+        return await _synthesize_openrouter(text)
+
+
+async def _synthesize_openrouter(text: str) -> bytes:
+    """Text -> MP3-Bytes via OpenRouter Fish Audio."""
+    if not config.OPENROUTER_API_KEY:
+        raise TTSError("OPENROUTER_API_KEY ist nicht gesetzt (siehe README).")
 
     async with httpx.AsyncClient(timeout=config.TTS_TIMEOUT) as client:
         r = await client.post(
@@ -35,13 +44,57 @@ async def synthesize(text: str) -> bytes:
                 "response_format": "mp3",
             },
         )
-    # Fehler kommen als JSON zurück, Erfolg als audio/*.
     if r.status_code != 200 or r.headers.get("content-type", "").startswith(
         "application/json"
     ):
         raise TTSError(f"TTS fehlgeschlagen (HTTP {r.status_code}): {r.text[:300]}")
     if not r.content:
         raise TTSError("TTS lieferte 0 Bytes.")
+    return r.content
+
+
+async def _synthesize_kokoro(text: str) -> bytes:
+    """Text -> MP3-Bytes via lokaler Kokoro-Server (OpenAI-kompatibel).
+    Kokoro gibt WAV zurück, wir konvertieren zu MP3 via ffmpeg falls verfügbar,
+    sonst geben wir WAV zurück (Frontend muss beide Formate können)."""
+    import subprocess
+
+    async with httpx.AsyncClient(timeout=config.KOKORO_TIMEOUT) as client:
+        r = await client.post(
+            config.KOKORO_URL,
+            headers={"Content-Type": "application/json"},
+            json={
+                "model": "kokoro",
+                "input": text,
+                "voice": config.KOKORO_VOICE,
+                "response_format": "wav",  # Kokoro liefert WAV, konvertieren wir
+            },
+        )
+    if r.status_code != 200:
+        raise TTSError(f"Kokoro TTS fehlgeschlagen (HTTP {r.status_code}): {r.text[:300]}")
+    if not r.content:
+        raise TTSError("Kokoro TTS lieferte 0 Bytes.")
+
+    # WAV -> MP3 konvertieren via ffmpeg (falls verfügbar), sonst WAV zurückgeben
+    log.info("Kokoro TTS: WAV empfangen (%d bytes), konvertiere zu MP3...", len(r.content))
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-i", "pipe:0", "-f", "mp3", "-c:a", "libmp3lame", "-b:a", "128k", "pipe:1"],
+            input=r.content,
+            capture_output=True,
+            timeout=30,
+        )
+        log.info("ffmpeg returncode: %d, stdout: %d bytes, stderr: %s", 
+                 result.returncode, len(result.stdout), result.stderr[:200] if result.stderr else "none")
+        if result.returncode == 0 and result.stdout:
+            log.info("ffmpeg konvertierung erfolgreich: %d bytes MP3", len(result.stdout))
+            return result.stdout
+    except (FileNotFoundError, subprocess.TimeoutExpired, subprocess.SubprocessError) as e:
+        log.warning("ffmpeg konvertierung fehlgeschlagen: %s", e)
+        pass  # ffmpeg nicht verfügbar oder Fehler
+
+    # Fallback: WAV zurückgeben (Frontend muss beide Formate können)
+    log.warning("Fallback: WAV wird zurückgegeben (Frontend muss WAV unterstützen)")
     return r.content
 
 

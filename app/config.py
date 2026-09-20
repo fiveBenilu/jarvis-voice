@@ -6,7 +6,11 @@ DATA_DIR = Path(os.environ.get("DATA_DIR", "data"))
 FILLER_DIR = DATA_DIR / "fillers"
 REPLY_DIR = DATA_DIR / "replies"
 
-# --- TTS (OpenRouter -> Fish Audio) ---
+# --- TTS Provider Selection ---
+# "openrouter" (Fish Audio via OpenRouter) or "kokoro" (local Kokoro server)
+TTS_PROVIDER = os.environ.get("TTS_PROVIDER", "openrouter")
+
+# --- TTS: OpenRouter (Fish Audio) ---
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 TTS_URL = "https://openrouter.ai/api/v1/audio/speech"
 # "fish-audio/s2.1-pro-free" (ohne Suffix) liefert 404 "No endpoints found".
@@ -16,6 +20,15 @@ TTS_MODEL = os.environ.get("TTS_MODEL", "fish-audio/s2.1-pro-free:free")
 # "Brian British" - ruhiger, tiefer britischer Männer-Voice. Auswahl siehe README.
 TTS_VOICE = os.environ.get("TTS_VOICE", "65c0b8155c464a648161af8877404f11")
 TTS_TIMEOUT = float(os.environ.get("TTS_TIMEOUT", "120"))
+
+# --- TTS: Kokoro (local server) ---
+KOKORO_URL = os.environ.get("KOKORO_URL", "http://localhost:8881/v1/audio/speech")
+# Verfügbare Stimmen via GET /v1/audio/voices prüfen.
+# Englisch: af_heart, af_sky, af_bella, af_nicole, af_sarah, af_aoede, af_kore,
+#           am_adam, am_michael, am_fenrir, am_puck, am_echo, am_onyx, am_nova,
+#           bf_alice, bf_emma, bf_isabella, bf_lily, bm_daniel, bm_fable, bm_george, bm_lewis
+KOKORO_VOICE = os.environ.get("KOKORO_VOICE", "am_adam")
+KOKORO_TIMEOUT = float(os.environ.get("KOKORO_TIMEOUT", "60"))
 
 # --- STT (faster-whisper) ---
 WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "small")
