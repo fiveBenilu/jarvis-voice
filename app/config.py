@@ -27,7 +27,7 @@ KOKORO_URL = os.environ.get("KOKORO_URL", "http://localhost:8881/v1/audio/speech
 # Englisch: af_heart, af_sky, af_bella, af_nicole, af_sarah, af_aoede, af_kore,
 #           am_adam, am_michael, am_fenrir, am_puck, am_echo, am_onyx, am_nova,
 #           bf_alice, bf_emma, bf_isabella, bf_lily, bm_daniel, bm_fable, bm_george, bm_lewis
-KOKORO_VOICE = os.environ.get("KOKORO_VOICE", "am_adam")
+KOKORO_VOICE = os.environ.get("KOKORO_VOICE", "af_heart")
 KOKORO_TIMEOUT = float(os.environ.get("KOKORO_TIMEOUT", "60"))
 
 # --- STT (faster-whisper) ---
