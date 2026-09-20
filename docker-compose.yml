@@ -8,6 +8,11 @@ services:
     # Gleiche UID/GID wie der Host-User, dem ~/.hermes gehört (sonst kein
     # Zugriff auf Sessions/Auth und keine Schreibrechte auf ./data).
     user: "${UID:-1000}:${GID:-1000}"
+    # host.docker.internal zeigt auf den Host: darüber ist der englische
+    # Kokoro-Service auf Port 8882 erreichbar (robuster als eine feste
+    # Bridge-IP, die sich pro Compose-Netz ändern kann).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - .env          # enthält OPENROUTER_API_KEY, siehe .env.example
     volumes:

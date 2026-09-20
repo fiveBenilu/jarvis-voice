@@ -244,4 +244,109 @@ micBtn.addEventListener("click", async () => {
   }
 });
 
+// --- Einstellungen ---------------------------------------------------------
+
+const settingsBtn = document.getElementById("settings-btn");
+const settingsDlg = document.getElementById("settings");
+const settingsForm = document.getElementById("settings-form");
+const settingsStatus = document.getElementById("settings-status");
+const selProvider = document.getElementById("set-provider");
+const selVoice = document.getElementById("set-voice");
+const selModel = document.getElementById("set-model");
+
+let settingsOptions = null;
+
+function fillSelect(sel, items, selectedId) {
+  sel.innerHTML = "";
+  for (const item of items) {
+    const opt = document.createElement("option");
+    opt.value = item.id;
+    opt.textContent = item.label;
+    if (item.id === selectedId) opt.selected = true;
+    sel.append(opt);
+  }
+  if (!items.some((i) => i.id === selectedId) && items.length) {
+    sel.selectedIndex = 0;
+  }
+}
+
+function voicesFor(provider) {
+  if (!settingsOptions) return [];
+  return provider === "kokoro" ? settingsOptions.kokoro_voices : settingsOptions.openrouter_voices;
+}
+
+function refreshVoiceSelect(provider, currentVoice) {
+  const list = voicesFor(provider);
+  if (!list.length) {
+    selVoice.innerHTML = '<option value="">(keine Stimmen gefunden)</option>';
+    selVoice.disabled = true;
+    return;
+  }
+  selVoice.disabled = false;
+  fillSelect(selVoice, list, currentVoice);
+}
+
+async function openSettings() {
+  settingsStatus.textContent = "Loading…";
+  settingsStatus.className = "hint";
+  try {
+    const r = await fetch("/api/settings");
+    if (!r.ok) throw new Error(await readError(r));
+    const data = await r.json();
+    settingsOptions = data.options;
+    const s = data.settings;
+
+    fillSelect(selProvider, settingsOptions.providers, s.tts_provider);
+    if (s.tts_provider === "kokoro") {
+      refreshVoiceSelect("kokoro", s.kokoro_voice);
+    } else {
+      fillSelect(selVoice, settingsOptions.openrouter_voices, s.openrouter_voice);
+    }
+    fillSelect(selModel, settingsOptions.hermes_models, s.hermes_model || "");
+    settingsStatus.textContent = "";
+  } catch (e) {
+    settingsStatus.className = "hint error";
+    settingsStatus.textContent = e?.message || String(e);
+  }
+  settingsDlg.showModal();
+}
+
+settingsBtn.addEventListener("click", openSettings);
+document.getElementById("settings-close").addEventListener("click", () => settingsDlg.close());
+settingsDlg.addEventListener("click", (e) => {
+  if (e.target.id === "settings") settingsDlg.close();
+});
+
+// Stimmenliste an den gewählten Provider anpassen.
+selProvider.addEventListener("change", () => refreshVoiceSelect(selProvider.value, ""));
+
+settingsForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const provider = selProvider.value;
+  const body = { tts_provider: provider, hermes_model: selModel.value };
+  if (provider === "kokoro") body.kokoro_voice = selVoice.value;
+  else body.openrouter_voice = selVoice.value;
+
+  const btn = settingsForm.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  settingsStatus.className = "hint";
+  settingsStatus.textContent = "Saving…";
+  try {
+    const r = await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error(await readError(r));
+    settingsStatus.textContent = "Saved. Applies to the next answer.";
+    setTimeout(() => settingsDlg.close(), 900);
+  } catch (err) {
+    settingsStatus.className = "hint error";
+    settingsStatus.textContent = err?.message || String(err);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// Initialzustand setzen
 setState("idle");

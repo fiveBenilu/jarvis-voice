@@ -281,3 +281,46 @@ Alles echt gelaufen, nichts simuliert:
   installierbar - offline funktioniert sie nicht.
 - **TTS nur Englisch.** Deutsche Antworten würden von der Stimme falsch
   ausgesprochen; deshalb der Preamble oben.
+
+## Englische Stimme (Kokoro) + Einstellungen im UI
+
+### Warum es zwei Kokoro-Instanzen gibt
+
+Der auf dem Server vorhandene Kokoro-Container (`kokoro-onnx`, Port **8881**,
+Image `kokoro-martin-kokoro-onnx`) ist eine **deutsch-only** Installation:
+`/app/kokoro-martin.onnx` + `voices-martin.npz` mit genau einer Stimme
+(`martin`), dazu deutsche Text-Normalisierung. Er liefert immer Deutsch,
+egal welche Voice man anfragt — und wird von Hermes selbst als TTS genutzt,
+deshalb bleibt er unangetastet.
+
+Für die App läuft deshalb eine **zweite, englische Instanz** unter
+`~/apps/kokoro-en` auf Port **8882**:
+
+- Modell: offizielles `kokoro-v1.0.int8.onnx` (92 MB statt 325 MB — auf
+  CPU-only deutlich schneller) + `voices-v1.0.bin`
+- 54 Stimmen, u.a. `af_heart`, `af_bella`, `af_nicole` (US weiblich),
+  `bf_emma` (UK weiblich), `am_michael`, `bm_george` (männlich)
+- Start: `cd ~/apps/kokoro-en && docker compose up -d --build`
+- Prüfen: `curl http://localhost:8882/v1/audio/voices`
+
+Die App erreicht den Host über `host.docker.internal` (per
+`extra_hosts: host.docker.internal:host-gateway` in der `docker-compose.yml`),
+nicht über eine feste Bridge-IP.
+
+### Einstellungen in der App
+
+Zahnrad-Symbol oben rechts öffnet ein Sheet mit:
+
+| Feld | Wirkung |
+|------|---------|
+| **Voice engine** | `Kokoro` (lokal, englisch, kostenlos) oder `OpenRouter · Fish Audio` |
+| **Voice** | Stimmenliste des gewählten Providers (Kokoro live via `/v1/audio/voices`) |
+| **Hermes model** | Modell für die Antworten; wird als `--model` an `hermes chat` durchgereicht |
+
+Gespeichert wird serverseitig in `data/settings.json` und wirkt **sofort beim
+nächsten Turn**, ohne Container-Neustart.
+
+API:
+- `GET /api/settings` → `{settings, options}` (inkl. Stimmen- und Modelllisten)
+- `PUT /api/settings` → Teil-Update; unbekannte Provider → HTTP 422
+- `GET /api/health` zeigt jetzt auch `tts_provider`, `tts_voice`, `hermes_model`

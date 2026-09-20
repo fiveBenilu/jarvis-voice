@@ -144,3 +144,69 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .pulse, .dots::after, .msg { animation: none !important; }
 }
+
+/* --- Topbar rechts: Status + Einstellungen ------------------------------- */
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+
+.icon-btn {
+  width: 44px; height: 44px; flex: none;
+  display: grid; place-items: center;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--muted); cursor: pointer;
+  padding: 0;
+}
+.icon-btn svg { width: 21px; height: 21px; }
+.icon-btn:active { transform: scale(.95); }
+.icon-btn:hover { color: var(--text); }
+
+/* --- Einstellungen-Sheet ------------------------------------------------- */
+#settings {
+  width: 100%; max-width: 560px; max-height: 90dvh; margin: auto auto 0; padding: 0;
+  border: 0; border-radius: 20px 20px 0 0;
+  background: var(--card); color: var(--text);
+}
+@media (min-width: 700px) { #settings { margin: auto; border-radius: 20px; } }
+#settings::backdrop { background: rgba(0,0,0,.45); }
+
+.sheet-head {
+  position: sticky; top: 0; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px 10px 20px;
+  background: var(--card); border-bottom: 1px solid var(--line);
+}
+.sheet-head h2 { margin: 0; font-size: 17px; font-weight: 640; }
+.close {
+  width: 44px; height: 44px; flex: none;
+  display: grid; place-items: center;
+  border: 0; border-radius: 999px; background: var(--bg); color: var(--text);
+  cursor: pointer; padding: 0;
+}
+.close svg { width: 18px; height: 18px; }
+
+.sheet {
+  display: grid; gap: 14px;
+  padding: 18px 20px calc(24px + env(safe-area-inset-bottom));
+}
+.sheet label {
+  display: grid; gap: 6px;
+  font-size: 13px; font-weight: 600; color: var(--muted);
+}
+.sheet select {
+  width: 100%; min-height: 48px; padding: 10px 12px;
+  font-size: 16px; /* 16px verhindert iOS-Zoom beim Fokus */
+  color: var(--text); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 12px;
+  -webkit-appearance: none; appearance: none;
+}
+.sheet select:disabled { opacity: .55; }
+.sheet .hint { text-align: left; margin: 0; padding: 0; font-size: 14px; }
+.sheet .hint.error { color: var(--danger); }
+
+.btn {
+  min-height: 48px; padding: 0 20px; border: 0; border-radius: 14px;
+  font: inherit; font-weight: 640; cursor: pointer; width: 100%;
+  background: var(--accent-soft); color: var(--accent);
+}
+.btn.primary { background: var(--accent); color: #fff; }
+.btn:disabled { opacity: .55; }
+.btn:active { transform: scale(.985); }

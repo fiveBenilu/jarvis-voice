@@ -18,7 +18,16 @@
 <body>
   <header class="topbar">
     <h1>Jarvis</h1>
-    <span id="status" class="status" data-state="idle">Idle</span>
+    <div class="topbar-right">
+      <span id="status" class="status" data-state="idle">Idle</span>
+      <button id="settings-btn" class="icon-btn" type="button" aria-label="Einstellungen öffnen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3.2"></circle>
+          <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.05A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.05A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.05A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v0a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.05a1.7 1.7 0 0 0-1.55 1Z"></path>
+        </svg>
+      </button>
+    </div>
   </header>
 
   <main id="transcript" class="transcript" aria-live="polite">
@@ -40,6 +49,35 @@
     </button>
     <p class="dock-label" id="mic-label">Tap to speak</p>
   </footer>
+
+  <!-- Einstellungen: Provider, Stimme, Hermes-Modell -->
+  <dialog id="settings">
+    <div class="sheet-head">
+      <h2>Settings</h2>
+      <button class="close" id="settings-close" type="button" aria-label="Close settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18"></path>
+        </svg>
+      </button>
+    </div>
+    <form class="sheet" id="settings-form">
+      <label>Voice engine
+        <select name="tts_provider" id="set-provider"></select>
+      </label>
+
+      <label>Voice
+        <select name="kokoro_voice" id="set-voice"></select>
+      </label>
+
+      <label>Hermes model
+        <select name="hermes_model" id="set-model"></select>
+      </label>
+
+      <button class="btn primary" type="submit">Save</button>
+      <p class="hint" id="settings-status" role="status"></p>
+    </form>
+  </dialog>
 
   <script src="/static/app.js"></script>
 </body>

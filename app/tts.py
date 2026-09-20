@@ -4,7 +4,7 @@ import logging
 
 import httpx
 
-from . import config
+from . import config, settings
 
 log = logging.getLogger("jarvis.tts")
 
@@ -14,18 +14,18 @@ class TTSError(RuntimeError):
 
 
 async def synthesize(text: str) -> bytes:
-    """Text -> MP3-Bytes. Wählt Provider basierend auf TTS_PROVIDER."""
+    """Text -> MP3-Bytes. Provider/Stimme kommen aus den Laufzeit-Einstellungen."""
     text = text.strip()
     if not text:
         raise TTSError("Leerer Text.")
 
-    if config.TTS_PROVIDER == "kokoro":
-        return await _synthesize_kokoro(text)
-    else:
-        return await _synthesize_openrouter(text)
+    s = settings.current()
+    if s["tts_provider"] == "kokoro":
+        return await _synthesize_kokoro(text, url=s["kokoro_url"], voice=s["kokoro_voice"])
+    return await _synthesize_openrouter(text, voice=s["openrouter_voice"])
 
 
-async def _synthesize_openrouter(text: str) -> bytes:
+async def _synthesize_openrouter(text: str, voice: str | None = None) -> bytes:
     """Text -> MP3-Bytes via OpenRouter Fish Audio."""
     if not config.OPENROUTER_API_KEY:
         raise TTSError("OPENROUTER_API_KEY ist nicht gesetzt (siehe README).")
@@ -40,7 +40,7 @@ async def _synthesize_openrouter(text: str) -> bytes:
             json={
                 "model": config.TTS_MODEL,
                 "input": text,
-                "voice": config.TTS_VOICE,
+                "voice": voice or config.TTS_VOICE,
                 "response_format": "mp3",
             },
         )
@@ -53,21 +53,23 @@ async def _synthesize_openrouter(text: str) -> bytes:
     return r.content
 
 
-async def _synthesize_kokoro(text: str) -> bytes:
-    """Text -> MP3-Bytes via lokaler Kokoro-Server (OpenAI-kompatibel).
-    Kokoro gibt WAV zurück, wir konvertieren zu MP3 via ffmpeg falls verfügbar,
-    sonst geben wir WAV zurück (Frontend muss beide Formate können)."""
+async def _synthesize_kokoro(text: str, url: str | None = None, voice: str | None = None) -> bytes:
+    """Text -> MP3-Bytes via Kokoro (lokal, englisch).
+    Kokoro liefert WAV; wir konvertieren per ffmpeg nach MP3 (Fallback: WAV)."""
     import subprocess
+
+    target = url or config.KOKORO_URL
+    chosen = voice or config.KOKORO_VOICE
 
     async with httpx.AsyncClient(timeout=config.KOKORO_TIMEOUT) as client:
         r = await client.post(
-            config.KOKORO_URL,
+            target,
             headers={"Content-Type": "application/json"},
             json={
                 "model": "kokoro",
                 "input": text,
-                "voice": config.KOKORO_VOICE,
-                "response_format": "wav",  # Kokoro liefert WAV, konvertieren wir
+                "voice": chosen,
+                "response_format": "wav",
             },
         )
     if r.status_code != 200:
@@ -76,7 +78,6 @@ async def _synthesize_kokoro(text: str) -> bytes:
         raise TTSError("Kokoro TTS lieferte 0 Bytes.")
 
     # WAV -> MP3 konvertieren via ffmpeg (falls verfügbar), sonst WAV zurückgeben
-    log.info("Kokoro TTS: WAV empfangen (%d bytes), konvertiere zu MP3...", len(r.content))
     try:
         result = subprocess.run(
             ["ffmpeg", "-i", "pipe:0", "-f", "mp3", "-c:a", "libmp3lame", "-b:a", "128k", "pipe:1"],
@@ -84,18 +85,39 @@ async def _synthesize_kokoro(text: str) -> bytes:
             capture_output=True,
             timeout=30,
         )
-        log.info("ffmpeg returncode: %d, stdout: %d bytes, stderr: %s", 
-                 result.returncode, len(result.stdout), result.stderr[:200] if result.stderr else "none")
         if result.returncode == 0 and result.stdout:
-            log.info("ffmpeg konvertierung erfolgreich: %d bytes MP3", len(result.stdout))
             return result.stdout
+        log.warning("ffmpeg rc=%s, nutze WAV-Fallback", result.returncode)
     except (FileNotFoundError, subprocess.TimeoutExpired, subprocess.SubprocessError) as e:
-        log.warning("ffmpeg konvertierung fehlgeschlagen: %s", e)
-        pass  # ffmpeg nicht verfügbar oder Fehler
+        log.warning("ffmpeg nicht verfügbar (%s) - liefere WAV", e)
 
-    # Fallback: WAV zurückgeben (Frontend muss beide Formate können)
-    log.warning("Fallback: WAV wird zurückgegeben (Frontend muss WAV unterstützen)")
     return r.content
+
+
+async def available_kokoro_voices() -> list[dict]:
+    """Stimmenliste vom Kokoro-Service holen (für das Settings-UI)."""
+    url = settings.current()["kokoro_url"]
+    base = url.rsplit("/v1/", 1)[0]
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(f"{base}/v1/audio/voices")
+        r.raise_for_status()
+        data = r.json()
+        names = data.get("voices") or []
+        return [{"id": n, "label": _voice_label(n)} for n in names]
+    except Exception as e:
+        log.warning("Kokoro-Stimmen nicht abrufbar (%s): %s", base, e)
+        return []
+
+
+def _voice_label(name: str) -> str:
+    """af_heart -> 'af · heart (female)' - grobe Einordnung nach Kokoro-Konvention."""
+    if "_" not in name:
+        return name
+    prefix, rest = name.split("_", 1)
+    kind = {"af": "US female", "am": "US male", "bf": "UK female", "bm": "UK male"}.get(prefix, prefix)
+    return f"{rest} ({kind})"
+
 
 
 async def ensure_fillers() -> list[str]:

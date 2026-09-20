@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import config, hermes, tts
+from . import config, hermes, settings, tts
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("jarvis")
@@ -76,16 +76,59 @@ async def manifest():
 
 @app.get("/api/health")
 async def health():
+    s = settings.current()
     return {
         "ok": True,
         "whisper_model": config.WHISPER_MODEL,
         "whisper_loaded": _model is not None,
+        "tts_provider": s["tts_provider"],
+        "tts_voice": s["kokoro_voice"] if s["tts_provider"] == "kokoro" else s["openrouter_voice"],
         "tts_model": config.TTS_MODEL,
-        "tts_voice": config.TTS_VOICE,
         "tts_key_present": bool(config.OPENROUTER_API_KEY),
         "hermes_session": config.HERMES_SESSION,
+        "hermes_model": s.get("hermes_model") or "(Standard)",
         "fillers": len(tts.available_fillers()),
     }
+
+
+# --------------------------------------------------------------------------
+# Einstellungen (Laufzeit, persistent in data/settings.json)
+# --------------------------------------------------------------------------
+
+
+class SettingsIn(BaseModel):
+    tts_provider: str | None = None
+    kokoro_url: str | None = None
+    kokoro_voice: str | None = None
+    openrouter_model: str | None = None
+    openrouter_voice: str | None = None
+    hermes_model: str | None = None
+
+
+@app.get("/api/settings")
+async def get_settings():
+    """Aktuelle Einstellungen plus die Auswahlmöglichkeiten fürs UI."""
+    return {
+        "settings": settings.current(),
+        "options": {
+            "providers": [
+                {"id": "kokoro", "label": "Kokoro (lokal, Englisch, kostenlos)"},
+                {"id": "openrouter", "label": "OpenRouter · Fish Audio"},
+            ],
+            "kokoro_voices": await tts.available_kokoro_voices(),
+            "openrouter_voices": settings.OPENROUTER_VOICES,
+            "hermes_models": settings.HERMES_MODELS,
+        },
+    }
+
+
+@app.put("/api/settings")
+async def put_settings(body: SettingsIn):
+    try:
+        updated = settings.save(body.model_dump(exclude_none=True))
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    return {"ok": True, "settings": updated}
 
 
 # --------------------------------------------------------------------------

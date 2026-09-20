@@ -9,7 +9,7 @@ import asyncio
 import logging
 import os
 
-from . import config
+from . import config, settings
 
 log = logging.getLogger("jarvis.hermes")
 
@@ -19,17 +19,24 @@ class HermesError(RuntimeError):
 
 
 def _build_cmd() -> list[str]:
-    return [
+    cmd = [
         config.HERMES_PYTHON,
         config.HERMES_SCRIPT,
         "chat",
         "--continue",
         config.HERMES_SESSION,
         "--create-if-missing",
+    ]
+    # Modell pro Aufruf umstellbar (verifiziert: `hermes chat` kennt -m/--model).
+    model = settings.current().get("hermes_model") or ""
+    if model:
+        cmd += ["--model", model]
+    cmd += [
         "-Q",  # nur die finale Antwort auf stdout, kein Banner/Spinner
         "--query-file",
         "-",  # Query über stdin: nichts wird von der Shell interpretiert
     ]
+    return cmd
 
 
 async def ask(text: str) -> str:

@@ -22,11 +22,14 @@ TTS_VOICE = os.environ.get("TTS_VOICE", "65c0b8155c464a648161af8877404f11")
 TTS_TIMEOUT = float(os.environ.get("TTS_TIMEOUT", "120"))
 
 # --- TTS: Kokoro (local server) ---
-KOKORO_URL = os.environ.get("KOKORO_URL", "http://localhost:8881/v1/audio/speech")
-# Verfügbare Stimmen via GET /v1/audio/voices prüfen.
-# Englisch: af_heart, af_sky, af_bella, af_nicole, af_sarah, af_aoede, af_kore,
-#           am_adam, am_michael, am_fenrir, am_puck, am_echo, am_onyx, am_nova,
-#           bf_alice, bf_emma, bf_isabella, bf_lily, bm_daniel, bm_fable, bm_george, bm_lewis
+# ACHTUNG: Port 8881 ist die DEUTSCHE Kokoro-Instanz (nur Voice "martin") —
+# die nutzt Hermes selbst. Für Englisch läuft auf 8882 eine zweite Instanz mit
+# dem offiziellen englischen Kokoro-v1.0-Modell (54 Stimmen, u.a. af_heart).
+KOKORO_URL = os.environ.get(
+    "KOKORO_URL", "http://host.docker.internal:8882/v1/audio/speech"
+)
+# af_heart = US-englische Frauenstimme (verifiziert: Whisper erkennt en, prob 1.00).
+# Weitere: af_bella, af_nicole, af_sky, bf_emma (UK), am_michael, bm_george (UK male)
 KOKORO_VOICE = os.environ.get("KOKORO_VOICE", "af_heart")
 KOKORO_TIMEOUT = float(os.environ.get("KOKORO_TIMEOUT", "60"))
 
