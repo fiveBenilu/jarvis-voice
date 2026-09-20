@@ -1,0 +1,28 @@
+services:
+  jarvis-voice:
+    build: .
+    container_name: jarvis-voice
+    restart: unless-stopped
+    ports:
+      - "8020:8020"
+    # Gleiche UID/GID wie der Host-User, dem ~/.hermes gehört (sonst kein
+    # Zugriff auf Sessions/Auth und keine Schreibrechte auf ./data).
+    user: "${UID:-1000}:${GID:-1000}"
+    env_file:
+      - .env          # enthält OPENROUTER_API_KEY, siehe .env.example
+    volumes:
+      # Filler-Cache + Hermes-Workspace
+      - ./data:/app/data
+      - ./data/workspace:/workspace
+      # Whisper-Modelle: der Host-HF-Cache enthält models--Systran--faster-whisper-*
+      # bereits, dadurch lädt der Container beim Start nichts nach.
+      - ${HOME}/.cache/huggingface:/hf-cache
+
+      # --- Hermes ---------------------------------------------------------
+      # Auf DENSELBEN absoluten Pfad wie auf dem Host mounten: venv/bin/python
+      # ist ein absoluter Symlink und pyvenv.cfg referenziert denselben Pfad.
+      # Nicht read-only: Hermes schreibt Sessions, State und Token-Refreshes.
+      - ${HOME}/.hermes:${HOME}/.hermes
+      # Der eigentliche Interpreter (uv-verwaltetes CPython 3.11), auf das der
+      # Symlink oben zeigt. Ohne diesen Mount startet Hermes nicht.
+      - ${HOME}/.local/share/uv/python/cpython-3.11-linux-x86_64-gnu:${HOME}/.local/share/uv/python/cpython-3.11-linux-x86_64-gnu:ro

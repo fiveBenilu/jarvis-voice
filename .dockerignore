@@ -1,0 +1,7 @@
+.env
+data/
+__pycache__/
+*.pyc
+README.md
+SPEC.md
+test_smoke.py

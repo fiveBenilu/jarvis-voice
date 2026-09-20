@@ -1,0 +1,146 @@
+:root {
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --text: #11151c;
+  --muted: #667085;
+  --line: #e3e6eb;
+  --accent: #1f6feb;
+  --accent-soft: #e4eeff;
+  --danger: #c0392b;
+  --radius: 18px;
+  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 20px rgba(0,0,0,.06);
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117;
+    --card: #171c24;
+    --text: #e8ecf2;
+    --muted: #8b95a5;
+    --line: #262d38;
+    --accent: #4aa3ff;
+    --accent-soft: #16263c;
+    --danger: #ef6b5b;
+    --shadow: none;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; height: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.topbar {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: max(env(safe-area-inset-top), 10px) 18px 10px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar h1 { margin: 0; font-size: 19px; font-weight: 640; letter-spacing: .015em; }
+
+.status {
+  font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  padding: 5px 11px; border-radius: 999px;
+  color: var(--muted); background: var(--card); border: 1px solid var(--line);
+  white-space: nowrap;
+}
+.status[data-state="recording"] { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
+.status[data-state="transcribing"],
+.status[data-state="thinking"],
+.status[data-state="speaking"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+
+/* Verlauf */
+.transcript {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 18px 16px 8px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.hint { margin: auto 0; text-align: center; color: var(--muted); font-size: 15px; padding: 0 24px; }
+
+.msg {
+  max-width: 82%;
+  padding: 11px 14px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  animation: rise .18s ease-out;
+}
+.msg.user { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 6px; }
+.msg.bot  { align-self: flex-start; background: var(--card); border: 1px solid var(--line); border-bottom-left-radius: 6px; }
+.msg.bot.pending { color: var(--muted); font-style: italic; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+
+/* Wartepunkte, solange Hermes denkt */
+.dots::after {
+  content: "";
+  animation: dots 1.2s steps(4, end) infinite;
+}
+@keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+
+.error {
+  margin: 0 16px 8px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+}
+
+/* Mikrofon-Dock */
+.dock {
+  flex: 0 0 auto;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 14px 16px calc(max(env(safe-area-inset-bottom), 12px) + 6px);
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+.dock-label { margin: 0; font-size: 13px; color: var(--muted); }
+
+.mic {
+  position: relative;
+  width: 84px; height: 84px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid; place-items: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none; -webkit-user-select: none;
+  transition: transform .12s ease, background .15s ease, color .15s ease;
+}
+.mic:active { transform: scale(.96); }
+.mic .icon { width: 36px; height: 36px; position: relative; z-index: 1; }
+
+.mic[data-state="recording"] { background: var(--danger); color: #fff; border-color: var(--danger); }
+.mic[data-state="busy"] { opacity: .55; cursor: default; }
+.mic:disabled { cursor: default; }
+
+/* Puls nur beim Aufnehmen */
+.pulse { position: absolute; inset: 0; border-radius: 50%; }
+.mic[data-state="recording"] .pulse {
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 55%, transparent);
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  to { box-shadow: 0 0 0 22px color-mix(in srgb, var(--danger) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse, .dots::after, .msg { animation: none !important; }
+}

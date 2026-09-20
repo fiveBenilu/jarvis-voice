@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Jarvis">
+  <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+  <title>Jarvis</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/icon.svg">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Jarvis</h1>
+    <span id="status" class="status" data-state="idle">Idle</span>
+  </header>
+
+  <main id="transcript" class="transcript" aria-live="polite">
+    <p class="hint" id="hint">Tap the microphone and speak. Tap again when you are done.</p>
+  </main>
+
+  <div id="error" class="error" role="alert" hidden></div>
+
+  <footer class="dock">
+    <button id="mic" class="mic" type="button" aria-label="Start recording">
+      <span class="pulse" aria-hidden="true"></span>
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="9" y="2.5" width="6" height="11" rx="3"></rect>
+        <path d="M5.5 11a6.5 6.5 0 0 0 13 0"></path>
+        <path d="M12 17.5V21"></path>
+        <path d="M8.5 21h7"></path>
+      </svg>
+    </button>
+    <p class="dock-label" id="mic-label">Tap to speak</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
